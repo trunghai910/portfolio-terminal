@@ -110,9 +110,19 @@ export default function App() {
     [refreshCacheStatus]
   );
 
-  const runAnalysis = useCallback(() => {
-    return executeAnalysis({ ...request, tickers: parsedTickers });
-  }, [executeAnalysis, parsedTickers, request]);
+  const runAnalysis = useCallback(
+    (patch?: Partial<AnalyzeRequest>) => {
+      const nextRequest = patch ? { ...request, ...patch } : request;
+      if (patch) {
+        setRequest(nextRequest);
+      }
+      return executeAnalysis({
+        ...nextRequest,
+        tickers: patch?.tickers ?? parsedTickers,
+      });
+    },
+    [executeAnalysis, parsedTickers, request]
+  );
 
   useEffect(() => {
     if (!initializedRef.current) {
@@ -166,7 +176,7 @@ export default function App() {
           setRequest((prev) => ({ ...prev, weights: nextWeights }));
         }}
         onEqualizeWeights={handleEqualizeWeights}
-        onRun={() => void runAnalysis()}
+        onRun={(patch) => void runAnalysis(patch)}
         loading={loading}
         isDirty={isDirty}
         cacheStatus={cacheStatus}

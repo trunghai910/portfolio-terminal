@@ -5,10 +5,9 @@ import type { AnalyzeRequest, OptimizationMethod } from "../../types/portfolio";
 interface QuantParamsSectionProps {
   request: AnalyzeRequest;
   onUpdateRequest: (patch: Partial<AnalyzeRequest>) => void;
-  onRun: () => void;
+  onRun: (patch?: Partial<AnalyzeRequest>) => void;
   loading: boolean;
   isDirty: boolean;
-  onKeyDownRun: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 function useNumericDraft(
@@ -22,13 +21,16 @@ function useNumericDraft(
     setDraft(String(externalValue));
   }, [externalValue]);
 
-  const commit = () => {
+  const commit = (): number => {
     const parsed = Number(draft);
     const valid = Number.isFinite(parsed) && draft.trim() !== "";
     const raw = valid ? (options.round ? Math.round(parsed) : parsed) : options.fallback;
     const clamped = Math.min(options.max, Math.max(options.min, raw));
     setDraft(String(clamped));
-    onCommit(clamped);
+    if (clamped !== externalValue) {
+      onCommit(clamped);
+    }
+    return clamped;
   };
 
   return { draft, setDraft, commit };
@@ -40,7 +42,6 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
   onRun,
   loading,
   isDirty,
-  onKeyDownRun,
 }) => {
   const maxWeight = useNumericDraft(
     Math.round(request.max_weight * 100),
@@ -65,6 +66,16 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
     { min: 0, max: 200, fallback: 0 },
     (bps) => onUpdateRequest({ slippage_bps: bps })
   );
+
+  const makeEnterHandler =
+    (commitFn: () => number, toPatch: (val: number) => Partial<AnalyzeRequest>) =>
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const committed = commitFn();
+        onRun(toPatch(committed));
+      }
+    };
 
   return (
     <section className="space-y-3.5 border-t border-terminal-border pt-5">
@@ -112,7 +123,7 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
             value={maxWeight.draft}
             onChange={(e) => maxWeight.setDraft(e.target.value)}
             onBlur={maxWeight.commit}
-            onKeyDown={onKeyDownRun}
+            onKeyDown={makeEnterHandler(maxWeight.commit, (pct) => ({ max_weight: pct / 100 }))}
             className="fintech-input num-tabular text-right font-mono"
           />
         </div>
@@ -133,7 +144,7 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
             value={lookback.draft}
             onChange={(e) => lookback.setDraft(e.target.value)}
             onBlur={lookback.commit}
-            onKeyDown={onKeyDownRun}
+            onKeyDown={makeEnterHandler(lookback.commit, (days) => ({ lookback_days: days }))}
             className="fintech-input num-tabular text-right font-mono"
           />
         </div>
@@ -157,7 +168,7 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
             value={txCost.draft}
             onChange={(e) => txCost.setDraft(e.target.value)}
             onBlur={txCost.commit}
-            onKeyDown={onKeyDownRun}
+            onKeyDown={makeEnterHandler(txCost.commit, (bps) => ({ tx_cost_bps: bps }))}
             className="fintech-input num-tabular text-right font-mono"
           />
         </div>
@@ -178,7 +189,7 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
             value={slippage.draft}
             onChange={(e) => slippage.setDraft(e.target.value)}
             onBlur={slippage.commit}
-            onKeyDown={onKeyDownRun}
+            onKeyDown={makeEnterHandler(slippage.commit, (bps) => ({ slippage_bps: bps }))}
             className="fintech-input num-tabular text-right font-mono"
           />
         </div>
@@ -187,7 +198,7 @@ export const QuantParamsSection: React.FC<QuantParamsSectionProps> = ({
       <div className="space-y-2 pt-1">
         <button
           type="button"
-          onClick={onRun}
+          onClick={() => onRun()}
           disabled={loading}
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-sm shadow-sky-500/20 transition hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/50 disabled:cursor-not-allowed disabled:opacity-50"
         >

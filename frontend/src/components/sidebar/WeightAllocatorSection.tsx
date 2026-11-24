@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Equal, Lock, Unlock } from "lucide-react";
+import type { AnalyzeRequest } from "../../types/portfolio";
 import { getWeightPercent, rebalanceLockedPercentages } from "../../utils/weights";
 
 interface WeightAllocatorSectionProps {
@@ -7,7 +8,7 @@ interface WeightAllocatorSectionProps {
   weights: Record<string, number>;
   onWeightsChange: (nextWeights: Record<string, number>) => void;
   onEqualizeWeights: () => void;
-  onKeyDownRun: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onRun: (patch?: Partial<AnalyzeRequest>) => void;
 }
 
 export const WeightAllocatorSection: React.FC<WeightAllocatorSectionProps> = ({
@@ -15,7 +16,7 @@ export const WeightAllocatorSection: React.FC<WeightAllocatorSectionProps> = ({
   weights,
   onWeightsChange,
   onEqualizeWeights,
-  onKeyDownRun,
+  onRun,
 }) => {
   const [lockedTickers, setLockedTickers] = useState<Record<string, boolean>>({});
   const [editingTicker, setEditingTicker] = useState<string | null>(null);
@@ -35,7 +36,10 @@ export const WeightAllocatorSection: React.FC<WeightAllocatorSectionProps> = ({
     });
   }, [parsedTickers]);
 
-  const applyPercentageChange = (targetTicker: string, desiredPct: number) => {
+  const applyPercentageChange = (
+    targetTicker: string,
+    desiredPct: number
+  ): Record<string, number> => {
     const nextWeights = rebalanceLockedPercentages(
       parsedTickers,
       weights,
@@ -43,7 +47,11 @@ export const WeightAllocatorSection: React.FC<WeightAllocatorSectionProps> = ({
       targetTicker,
       desiredPct
     );
-    onWeightsChange(nextWeights);
+    const changed = parsedTickers.some((t) => nextWeights[t] !== weights[t]);
+    if (changed) {
+      onWeightsChange(nextWeights);
+    }
+    return nextWeights;
   };
 
   const toggleLockTicker = (ticker: string) => {
@@ -189,6 +197,7 @@ export const WeightAllocatorSection: React.FC<WeightAllocatorSectionProps> = ({
                         }
                       }}
                       onBlur={() => {
+                        if (editingTicker !== t) return;
                         const parsed = Number(editingDraft);
                         const finalVal =
                           editingDraft.trim() !== "" && Number.isFinite(parsed)
@@ -197,7 +206,19 @@ export const WeightAllocatorSection: React.FC<WeightAllocatorSectionProps> = ({
                         applyPercentageChange(t, finalVal);
                         setEditingTicker(null);
                       }}
-                      onKeyDown={onKeyDownRun}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const parsed = Number(editingDraft);
+                          const finalVal =
+                            editingDraft.trim() !== "" && Number.isFinite(parsed)
+                              ? Math.min(maxAllowedPct, Math.max(0, parsed))
+                              : 0;
+                          const nextWeights = applyPercentageChange(t, finalVal);
+                          setEditingTicker(null);
+                          onRun({ weights: nextWeights });
+                        }
+                      }}
                       className="num-tabular w-[76px] rounded-md border border-terminal-borderStrong bg-terminal-elevated py-1 pl-2 pr-5 text-right font-mono text-xs text-terminal-text focus:border-terminal-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                     />
                     <span

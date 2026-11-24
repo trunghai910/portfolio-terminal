@@ -7,6 +7,7 @@ interface PortfolioConfigSectionProps {
   onTickerInputChange: (val: string) => void;
   request: AnalyzeRequest;
   onUpdateRequest: (patch: Partial<AnalyzeRequest>) => void;
+  onRun: (patch?: Partial<AnalyzeRequest>) => void;
   onKeyDownRun: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
@@ -15,6 +16,7 @@ export const PortfolioConfigSection: React.FC<PortfolioConfigSectionProps> = ({
   onTickerInputChange,
   request,
   onUpdateRequest,
+  onRun,
   onKeyDownRun,
 }) => {
   const [rfDraft, setRfDraft] = useState(
@@ -27,21 +29,37 @@ export const PortfolioConfigSection: React.FC<PortfolioConfigSectionProps> = ({
     );
   }, [request.risk_free_rate]);
 
-  const commitRiskFreeRate = () => {
+  const commitRiskFreeRate = (): number | null => {
     const trimmed = rfDraft.trim();
     if (!trimmed) {
-      onUpdateRequest({ risk_free_rate: null });
-      return;
+      if (request.risk_free_rate !== null) {
+        onUpdateRequest({ risk_free_rate: null });
+      }
+      return null;
     }
     const parsed = Number(trimmed);
     if (!Number.isFinite(parsed)) {
       setRfDraft("");
-      onUpdateRequest({ risk_free_rate: null });
-      return;
+      if (request.risk_free_rate !== null) {
+        onUpdateRequest({ risk_free_rate: null });
+      }
+      return null;
     }
     const clampedPct = Math.min(25, Math.max(0, parsed));
+    const nextValue = Number((clampedPct / 100).toFixed(4));
     setRfDraft(clampedPct.toFixed(2));
-    onUpdateRequest({ risk_free_rate: Number((clampedPct / 100).toFixed(4)) });
+    if (request.risk_free_rate !== nextValue) {
+      onUpdateRequest({ risk_free_rate: nextValue });
+    }
+    return nextValue;
+  };
+
+  const handleRfKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const nextRf = commitRiskFreeRate();
+      onRun({ risk_free_rate: nextRf });
+    }
   };
 
   return (
@@ -134,7 +152,7 @@ export const PortfolioConfigSection: React.FC<PortfolioConfigSectionProps> = ({
               value={rfDraft}
               onChange={(e) => setRfDraft(e.target.value)}
               onBlur={commitRiskFreeRate}
-              onKeyDown={onKeyDownRun}
+              onKeyDown={handleRfKeyDown}
               className="fintech-input num-tabular text-right font-mono placeholder:text-left placeholder:font-sans"
             />
           </div>

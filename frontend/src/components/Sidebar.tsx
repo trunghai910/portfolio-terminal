@@ -13,7 +13,7 @@ interface SidebarProps {
   onUpdateRequest: (patch: Partial<AnalyzeRequest>) => void;
   onWeightsChange: (nextWeights: Record<string, number>) => void;
   onEqualizeWeights: () => void;
-  onRun: () => void;
+  onRun: (patch?: Partial<AnalyzeRequest>) => void;
   loading: boolean;
   isDirty: boolean;
   cacheStatus: CacheStatus | null;
@@ -58,6 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onTickerInputChange={onTickerInputChange}
         request={request}
         onUpdateRequest={onUpdateRequest}
+        onRun={onRun}
         onKeyDownRun={handleKeyDownRun}
       />
 
@@ -66,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         weights={request.weights}
         onWeightsChange={onWeightsChange}
         onEqualizeWeights={onEqualizeWeights}
-        onKeyDownRun={handleKeyDownRun}
+        onRun={onRun}
       />
 
       <QuantParamsSection
@@ -75,7 +76,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onRun={onRun}
         loading={loading}
         isDirty={isDirty}
-        onKeyDownRun={handleKeyDownRun}
       />
 
       <CacheStatusCard cacheStatus={cacheStatus} onClearCache={onClearCache} />
