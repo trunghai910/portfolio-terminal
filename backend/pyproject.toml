@@ -1,0 +1,10 @@
+[project]
+name = "quant-portfolio-terminal-backend"
+version = "2.0.0"
+description = "High-performance Polars + DuckDB + NumPy/SciPy Quantitative Portfolio Engine"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-v"

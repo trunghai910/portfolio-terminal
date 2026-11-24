@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-canvas: #020617;
+  --bg-sidebar: #080d1a;
+  --bg-card: #0e1525;
+  --bg-elevated: #162033;
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent-primary: #38bdf8;
+  --pnl-gain: #22c55e;
+  --pnl-loss: #ef4444;
+  --pnl-warn: #f59e0b;
+}
+
+html {
+  font-size: 16px;
+  color-scheme: dark;
+}
+
+/* Đảm bảo toàn bộ khối số liệu tài chính thẳng hàng theo cột dọc */
+.num-tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@layer components {
+  /* Khung thẻ chuẩn cho KPI, Biểu đồ và Bảng */
+  .fintech-card {
+    @apply rounded-xl border border-terminal-border bg-terminal-card shadow-card;
+  }
+
+  /* Ô nhập liệu chuẩn Fintech trong Sidebar */
+  .fintech-input {
+    @apply mt-1.5 w-full rounded-lg border border-terminal-borderStrong/80 bg-terminal-elevated/80 px-2.5 py-2 text-xs text-terminal-text transition-colors placeholder:text-terminal-muted/70 hover:border-slate-500 focus:border-terminal-accent focus:bg-terminal-elevated focus:outline-none focus:ring-2 focus:ring-sky-500/20;
+  }
+
+  /* Nhóm lớp cho bảng dữ liệu định lượng */
+  .fintech-table-wrap {
+    @apply overflow-hidden rounded-xl border border-terminal-border bg-terminal-card shadow-card;
+  }
+
+  .fintech-table-header {
+    @apply flex flex-wrap items-center justify-between gap-2 border-b border-terminal-border bg-terminal-elevated/70 px-4 py-3;
+  }
+
+  .fintech-th {
+    @apply px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-terminal-muted;
+  }
+
+  .fintech-td-num {
+    @apply num-tabular px-4 py-2.5 text-right font-mono text-xs;
+  }
+}
+
+/* Thanh cuộn tối màu tinh gọn */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Tôn trọng tùy chọn giảm chuyển động của hệ điều hành */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

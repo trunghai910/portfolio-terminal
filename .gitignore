@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime DuckDB cache files
+backend/data/*.duckdb
+backend/data/*.duckdb.wal
+
+# Frontend / Node
+frontend/node_modules/
+frontend/dist/
+*.log
+
+# Archive, local agent skills & OS artifacts
+.agents/
+*.zip
+.DS_Store
+Thumbs.db
