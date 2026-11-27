@@ -1,4 +1,5 @@
 import React from "react";
+import type Plotly from "plotly.js";
 import { CHART_COLORS, REGIME_COLORS, REGIME_LABELS } from "../../constants/terminal";
 import type { AnalyzeResponse } from "../../types/portfolio";
 import {
@@ -11,6 +12,12 @@ import {
 import { MetricCard } from "../MetricCard";
 import { PlotlyChart } from "../PlotlyChart";
 
+const REGIME_BAND_FILL: Record<string, string> = {
+  BULL: "rgba(34, 197, 94, 0.09)",
+  NEUTRAL: "rgba(245, 158, 11, 0.18)",
+  BEAR: "rgba(239, 68, 68, 0.24)",
+};
+
 /**
  * Tab Kiểm Thử Chiến Lược Walk-Forward:
  * - So sánh lợi nhuận ròng, chi phí ăn mòn và tỷ lệ vòng quay danh mục.
@@ -21,6 +28,33 @@ export const BacktestTab: React.FC<{ data: AnalyzeResponse }> = ({ data }) => {
   const s = backtest.summary;
   const costDragFormatted =
     s.total_cost_drag > 0 ? `-${s.total_cost_drag.toFixed(2)}%` : "0.00%";
+
+  // Gom các phiên liên tiếp cùng trạng thái thành từng dải nền dọc (Regime Bands)
+  const regimeDates = backtest.regime_series.dates;
+  const regimeStates = backtest.regime_series.regime_state;
+  const regimeShapes: NonNullable<Plotly.Layout["shapes"]> = [];
+  if (regimeDates.length > 0) {
+    let runStart = 0;
+    for (let i = 1; i <= regimeStates.length; i++) {
+      if (i === regimeStates.length || regimeStates[i] !== regimeStates[runStart]) {
+        const state = regimeStates[runStart];
+        const endIdx = Math.min(i, regimeDates.length - 1);
+        regimeShapes.push({
+          type: "rect",
+          xref: "x",
+          yref: "paper",
+          x0: regimeDates[runStart],
+          x1: regimeDates[endIdx],
+          y0: 0,
+          y1: 1,
+          fillcolor: REGIME_BAND_FILL[state] ?? "rgba(148, 163, 184, 0.08)",
+          line: { width: 0 },
+          layer: "below",
+        });
+        runStart = i;
+      }
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -111,30 +145,42 @@ export const BacktestTab: React.FC<{ data: AnalyzeResponse }> = ({ data }) => {
         }}
       />
 
-      {/* Bản đồ giá SPY tô màu theo Trạng thái Thị trường */}
+      {/* Bản đồ giá SPY với dải nền phân vùng Trạng thái Thị trường + đường giá liên tục */}
       <PlotlyChart
-        height={350}
-        data={(["BULL", "NEUTRAL", "BEAR"] as const).map((state) => {
-          const xs: string[] = [];
-          const ys: number[] = [];
-          backtest.regime_series.regime_state.forEach((st, idx) => {
-            if (st === state) {
-              xs.push(backtest.regime_series.dates[idx]);
-              ys.push(backtest.regime_series.spy_price[idx]);
-            }
-          });
-          return {
+        height={400}
+        data={[
+          {
+            type: "scatter",
+            mode: "lines",
+            name: "Giá đóng cửa SPY ($)",
+            x: backtest.regime_series.dates,
+            y: backtest.regime_series.spy_price,
+            line: { color: "#f8fafc", width: 2 },
+            customdata: backtest.regime_series.regime_state.map((st, idx) => [
+              REGIME_LABELS[st] ?? st,
+              backtest.regime_series.regime_score[idx] ?? 0.5,
+            ]),
+            hovertemplate:
+              "<b>SPY:</b> $%{y:,.2f}<br><b>Trạng thái:</b> %{customdata[0]} (Điểm: %{customdata[1]:.2f})<extra></extra>",
+          },
+          ...(["BULL", "NEUTRAL", "BEAR"] as const).map((state) => ({
             type: "scatter" as const,
             mode: "markers" as const,
-            name: REGIME_LABELS[state],
-            x: xs,
-            y: ys,
-            marker: { color: REGIME_COLORS[state], size: 5 },
-          };
-        })}
+            name: `Vùng ${REGIME_LABELS[state]}`,
+            x: [null],
+            y: [null],
+            marker: {
+              symbol: "square",
+              size: 10,
+              color: REGIME_COLORS[state],
+            },
+            hoverinfo: "skip" as const,
+          })),
+        ]}
         layout={{
           title: { text: "Phân Loại Trạng Thái Thị Trường Trên Giá SPY (Phân Vị Trượt 252 Phiên)" },
           yaxis: { title: { text: "Giá đóng cửa điều chỉnh SPY ($)" } },
+          shapes: regimeShapes,
         }}
       />
 
